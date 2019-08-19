@@ -47,9 +47,9 @@
     <script src="https://www.google.com/recaptcha/api.js?render=6LflGpsUAAAAAKhm3e-A5q30qh1099ZZeF884Vld"></script>
 
 
-    <script src="utils.js"></script>
-    <script src="plotting.js"></script>
-    <script src="setup.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/plotting.js"></script>
+    <script src="js/setup.js"></script>
     <link href="style.css" rel="stylesheet" type="text/css">
     <link href="non-responsive.css" rel="stylesheet" type="text/css">
 
@@ -253,6 +253,9 @@
                           </div>
                         </div>
 
+                    </div>
+                    <div class="row">
+
                         <div class="dc-chart col-xs-2" id="age-chart">
                            <div class="dc-chart-title">
                                Age uncertainty:
@@ -267,7 +270,7 @@
                            </div>
                         </div>
 
-                        <div class="dc-chart col-xs-2" id="chart-temperature">
+                        <div class="dc-chart col-xs-3" id="chart-temperature">
                             <div class="dc-chart-title" id="temperature-title">Mean Annual Temperature</div>
                             <br>
                             <a class="reset" href="javascript:temperatureChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
@@ -279,9 +282,7 @@
                             <span class="reset" style="display: none;"><span class="filter"></span></span>
                         </div>
 
-                        <br><br>
-
-                        <div class="dc-chart col-xs-2" id="chart-precip">
+                        <div class="dc-chart col-xs-3" id="chart-precip">
                             <div class="dc-chart-title" id="precip-title">Mean Annual Precipitation</div>
                             <br>
                             <a class="reset" href="javascript:precipChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
@@ -293,7 +294,8 @@
                             <span class="reset" style="display: none;"><span class="filter"></span></span>
                         </div>
 
-                        <br><br>
+                    </div>
+                    <div class="row">
 
                         <div class="dc-chart col-xs-2" id="version-chart">
                            <div class="dc-chart-title">
