@@ -5,35 +5,65 @@ var mapMaxZoom = 15;
 
 var xf;
 
+// The cross filter dimensions
+//
+// array dimension for the workers
 var workerDim,
+    // dimension for the data contributor
     sampleNameDim,
+    // dimension for the country
     countryDim,
+    // dimension for the sample context
     sampleContextDim,
+    // dimension for the sample type
     sampleTypeDim,
+    // dimension for the sample method
     sampleMethodDim,
+    // dimension for accepted failures
     okexceptDim,
+    // binned dimension for the age uncertainty
     ageDim,
+    // dimension for the location uncertainty
     locationDim,
+    // dimensions for temperature values (DJF, MAM, JJA, SON, Annual)
     temperatureDims,
+    // dimensions for precipitation values (DJF, MAM, JJA, SON, Annual)
     precipDims;
 
 var temperatureGroups,
     precipGroups;
 
+// The various charts for the crossfilter
+//
+// full meta data table
 var dataTable,
+    // formatted meta data table
     formattedDataTable,
+    // leaflet map
     mapChart,
+    // EMPD version
     versionChart,
+    // country selection menu
     countryMenu,
+    // sample context selection menu
     sampleContextMenu,
+    // sample type selection menu
     sampleTypeMenu,
+    // sample method selection menu
     sampleMethodMenu,
+    // chart for the age uncertainty
     ageChart,
+    // chart for the location uncertainty
     locationChart,
+    // contributor selection menu
     contributorMenu,
+    // worker selection menu
     workerMenu,
+    // diagram for the temperature values
     temperatureChart,
+    // diagram for the precipitation values
     precipChart,
+    // selection menu for accepted failures
     okexceptMenu;
 
 // all charts except the map
@@ -1220,13 +1250,10 @@ function initCrossfilter(data) {
         .colors(Ocean_color);
 
     //-----------------------------------
-
-    okexceptMenu = dc.selectMenu('#okexcept-filter')
+    okexceptMenu = dc.cboxMenu('#okexcept-filter')
         .dimension(okexceptDim)
         .group(okexceptDim.group())
-        .multiple(true)
-        .numberVisible(10)
-        .controlsUseVisibility(true);
+        .multiple(true);
 
     allCharts = [
         dataTable, formattedDataTable, versionChart, countryMenu,
