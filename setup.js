@@ -181,6 +181,8 @@ $(document).ready(function() {
     mapmadeUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     mapmade = new L.TileLayer(mapmadeUrl, { maxZoom: mapMaxZoom+1});
 
+    new L.Control.MiniMap(mapmade, { toggleDisplay: true, zoomLevelOffset: -4 }).addTo(theMap);
+
     //----------------------------------------------------------------
     // Events handling
     $('#button_cartadd').click(function() {
