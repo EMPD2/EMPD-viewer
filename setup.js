@@ -183,6 +183,12 @@ $(document).ready(function() {
 
     new L.Control.MiniMap(mapmade, { toggleDisplay: true, zoomLevelOffset: -4 }).addTo(theMap);
 
+    new L.Control.MousePosition({
+        lngFirst: true,
+        position: "topright",
+        numDigits: 2
+    }).addTo(theMap);
+
     //----------------------------------------------------------------
     // Events handling
     $('#button_cartadd').click(function() {
