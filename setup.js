@@ -171,14 +171,8 @@ $(document).ready(function() {
 
     theMap = mapChart.map();
 
-    new L.Control.MousePosition({lngFirst: true}).addTo(theMap);
-    new L.Control.zoomHome({homeZoom: 3, homeCoordinates: [60, 69]}).addTo(theMap);
-
     mapmadeUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     mapmade = new L.TileLayer(mapmadeUrl, { maxZoom: mapMaxZoom+1});
-    new L.Control.MiniMap(mapmade, { toggleDisplay: true, zoomLevelOffset: -4 }).addTo(theMap);
-
-    $('.leaflet-control-zoomhome-home')[0].click();
 
     //----------------------------------------------------------------
     // Events handling
@@ -1476,22 +1470,22 @@ function initCrossfilter(data) {
   iconAnchor = [16,32];
   popupAnchor = [0,-32];
 
-  mapChart = dc.leafletMarkerChart("#chart-map");
+  mapChart = dc_leaflet.markerChart("#chart-map");
 
   mapChart
       .width($("#chart-map").width())
       .height(400)
       .dimension(mapDim)
       .group(mapGroup)
-      .center([60, 69])    // slightly different than zoomHome to have a info updated when triggered
+      .center([60, 69])
       .zoom(3)
       .tiles(function(map) {			// overwrite default baselayer
 	   return L.tileLayer(
                 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
                 { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community' }).addTo(map);
       })
-      .mapOptions({maxZoom: mapMaxZoom, zoomControl: false})
-      .fitOnRender(false)
+      .mapOptions({maxZoom: mapMaxZoom, zoomControl: true})
+      // .fitOnRender(false)
       .filterByArea(true)
       .cluster(true)
       .clusterOptions({maxClusterRadius: 50, showCoverageOnHover: false, spiderfyOnMaxZoom: true})
