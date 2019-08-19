@@ -273,6 +273,7 @@ $(document).ready(function() {
                          'metadata.tsv');
         });
 
+        // display some information meta data editing
         if (dataVersion != "custom") {
             document.getElementById("submit-instructions").innerHTML += (
                 " Please download the metadata using the button below and send it via mail."
@@ -284,6 +285,7 @@ $(document).ready(function() {
             );
         }
 
+        // hide issue reports for custom repositories
         if (dataVersion == "custom") {
             document.getElementById("report-instructions").innerHTML = (
                 `Issues can only be submitted for the <a href="${urlStable}">stable</a> or <a href="${urlLatest}">latest</a> version.`
@@ -291,7 +293,7 @@ $(document).ready(function() {
             $("#report-form").hide();
         }
 
-        // load diagram on popup
+        // plot the pollen and climate data on popupopen
         theMap.on('popupopen', function(event) {
             Id = event.popup._source.key[2] - 1;
             displayedId = data[Id].Id;
@@ -301,38 +303,40 @@ $(document).ready(function() {
             var activeTab = $('#climate-plot').hasClass("active") ? "climate-plot" : "pollen-plot";
             removeUnlocked();
 
-            var pollenData = [];
-                d3.tsv(
-                    repo_url + 'samples/' + data[Id].SampleName + '.tsv',
-                    function(d) {
-                        d.higher_groupid = groupInfo[d.groupid].higher_groupid;
-                        d.samplename = data[Id].SampleName;
-                        d.percentage = d.percentage == '' ? NaN : +d.percentage;
-                        d.count = d.count == '' ? NaN : +d.count;
-                        return d
-                    }).then(function(taxa_data) {
+            // plot the climate data
+            var elemId = lockableElement("climate-diagram", data[Id].SampleName, data[Id].SiteName);
+            $('#meta-tabs a[href="#climate-plot"]').tab('show');
+            plotClimate(data[Id], elemId);
+            plotClimateLegend("climate-diagram-legend");
 
-                        taxa_data = taxa_data.filter(d => !isNaN(d.percentage))
+            // load and plot the pollen data
+            d3.tsv(
+                repo_url + 'samples/' + data[Id].SampleName + '.tsv',
+                function(d) {
+                    d.higher_groupid = groupInfo[d.groupid].higher_groupid;
+                    d.samplename = data[Id].SampleName;
+                    d.percentage = d.percentage == '' ? NaN : +d.percentage;
+                    d.count = d.count == '' ? NaN : +d.count;
+                    return d
+                }).then(function(taxa_data) {
 
-                        document.getElementById("pollen-diagram-legend").innerHTML = "<svg/>";
-                        document.getElementById("climate-diagram-legend").innerHTML = "<svg/>";
+                    taxa_data = taxa_data.filter(d => !isNaN(d.percentage))
 
-                        var elemId = lockableElement("pollen-diagram", data[Id].SampleName, data[Id].SiteName);
-                        $('#meta-tabs a[href="#pollen-plot"]').tab('show');
-                        plotPollen(taxa_data, elemId);
-                        plotPollenLegend('pollen-diagram-legend');
+                    document.getElementById("pollen-diagram-legend").innerHTML = "<svg/>";
+                    document.getElementById("climate-diagram-legend").innerHTML = "<svg/>";
 
-                        var elemId = lockableElement("climate-diagram", data[Id].SampleName, data[Id].SiteName);
-                        $('#meta-tabs a[href="#climate-plot"]').tab('show');
-                        plotClimate(data[Id], elemId);
-                        plotClimateLegend("climate-diagram-legend");
+                    var elemId = lockableElement("pollen-diagram", data[Id].SampleName, data[Id].SiteName);
+                    $('#meta-tabs a[href="#pollen-plot"]').tab('show');
+                    plotPollen(taxa_data, elemId);
+                    plotPollenLegend('pollen-diagram-legend');
 
-                        $('#meta-tabs a[href="#' + activeTab + '"]').tab('show');
+                    $('#meta-tabs a[href="#' + activeTab + '"]').tab('show');
 
-                        plottedPollenData[data[Id].SampleName] = taxa_data;
-                    });
+                    plottedPollenData[data[Id].SampleName] = taxa_data;
+                });
 
         });
+
         theMap.on('popupclose', function(event) {
             Id = event.popup._source.key[2] - 1;
             if (editor.root.collapsed == false) {
@@ -392,6 +396,9 @@ $(document).ready(function() {
             highlightDisplayed();
         });
 
+        //------------------------------------------------------
+        // JSON editor
+        //
         // fill default properties
         ["Longitude", "Latitude", "Elevation", "AreaOfSite", "AgeBP"].forEach(
             function(numberField) {
@@ -495,8 +502,9 @@ $(document).ready(function() {
             });
             editor.disable();
 
+            // button to submit the data
             document.getElementById('btn-save').addEventListener(
-                'click',function() {// Get the value from the editor
+                'click', function() {// Get the value from the editor
                     var errors = editor.validate();
 
                     if (errors.length) {
@@ -521,12 +529,17 @@ $(document).ready(function() {
                         mapMarkers[value.Id - 1]._popup.setContent(getPopupContent(value));
                         resetData(value);
                     }
-            });
+                });
         });
 
         $("#submit-form").submit(function(e){
+            // Handle submitting the edited meta data
+            // We first collect the edited meta data, ping the EMPD-admin and
+            // submit the data
             var form = $(this);
             var rawForm = form.serializeArray();
+
+            // setup the data that shall be submitted
             var formData = {};
             for (var i = 0; i < rawForm.length; i++){
                 formData[rawForm[i]['name']] = rawForm[i]['value'];
@@ -537,6 +550,7 @@ $(document).ready(function() {
             formData["meta"] = meta_file;
             formData["metadata"] = data.filter(function(d){return d.Edited == true});
 
+            // fail if grecaptcha is disabled
             if (typeof(grecaptcha) === "undefined") {
                 $("#submit-failed").html(
                     "Please enable the javascript for Google Recaptcha to submit issues!");
@@ -599,6 +613,7 @@ $(document).ready(function() {
         $("#submit-successed").hide();
 
         $("#report-form").submit(function(e){
+            // Report an issue to the EMPD-admin
             var form = $(this);
             var rawForm = form.serializeArray();
             var formData = {};
@@ -609,6 +624,7 @@ $(document).ready(function() {
             formData["repo"] = data_repo;
             formData["branch"] = user_branch;
 
+            // fail if grecaptcha is disabled
             if (typeof(grecaptcha) === "undefined") {
                 $("#report-failed").html(
                     "Please enable the javascript for Google Recaptcha to submit issues!");
@@ -681,6 +697,14 @@ $(document).ready(function() {
 // ==================================================================
 
 function parseMeta(d, i) {
+    /**
+    * parse one row of the meta data and set the correct data type
+    *
+    * @param {Object} d - meta data row
+    * @param {integer} i - The row number
+    *
+    * @return {Object} revised meta data row
+    */
     d.Id = i+1;
     d.Longitude = +d.Longitude;
     d.Latitude = +d.Latitude;
@@ -709,6 +733,13 @@ function parseMeta(d, i) {
 // ==================================================================
 
 function getPopupContent(data) {
+    /**
+    * Get the popup content for one meta data row
+    *
+    * @param {Object} data - The meta data row
+    *
+    * @return {string} The popupcontent for the map
+    */
     return ('<div class="container" style="width:300px">'
             + `Sample name: <b>${data.SampleName}</b></br>`
             + `<b>${data.Country}</b></br></br>`
@@ -747,6 +778,7 @@ function getPopupContent(data) {
 // ==================================================================
 
 function workerTooltip(last, first, address1, address2, email1, email2) {
+    // Set up a tooltip for a worker
     hasTooltip = (address1 != "" || address2 != "" || email1 != "" || email2 != "");
     ret = (hasTooltip ? "<div class='popuptooltip'>" : "");
     ret = ret + last + ", " + first;
@@ -764,6 +796,7 @@ function workerTooltip(last, first, address1, address2, email1, email2) {
 //====================================================================
 
 function reportIssue(data) {
+    // open the issue tab for the given meta data row
     document.getElementById("issue_title").value = "Error with " + data.SampleName + ': ';
     $('#meta-tabs a[href="#report-issue"]').tab('show');
     document.getElementById('report-issue').scrollIntoView();
@@ -773,6 +806,7 @@ function reportIssue(data) {
 //====================================================================
 
 function editDisplayed() {
+    // edit the displayed data in the JSON editor
     editor.setValue(displayedData);
     editor.enable();
     editor.getEditor('root.SampleName').disable();
@@ -852,6 +886,7 @@ function prev_table_page() {
 
 //====================================================================
 function initCrossfilter(data) {
+    // initialize the crossfilter and setup the dimensions and charts
 
     //-----------------------------------
     xf = crossfilter(data);
@@ -1289,6 +1324,7 @@ function initCrossfilter(data) {
 // Functions to change the displayed content
 
 function changeTemperatureChart(what) {
+    // Change the temperatureChart to a different season
     var temperatureFilters = temperatureChart.filters();
     temperatureChart.filter(null);
     temperatureChart.dimension(temperatureDims[what]);
@@ -1299,6 +1335,7 @@ function changeTemperatureChart(what) {
 }
 
 function changePrecipChart(what) {
+    // Change the precipChart to a different season
     var precipFilters = precipChart.filters();
     precipChart.filter(null);
     precipChart.dimension(precipDims[what]);
@@ -1312,8 +1349,8 @@ function changePrecipChart(what) {
 // Functions to reset the cross filter
 
 function resetData(data) {
-
     // remove the data and add it again
+
     xf.remove(function(d, i) {return d.Id === data.Id;});
     xf.add([data]);
 
