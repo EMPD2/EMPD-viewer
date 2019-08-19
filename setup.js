@@ -40,6 +40,9 @@ var allCharts;
 
 var groupInfo = {};
 
+var mapCenter = [60, 69],
+    mapZoom = 3;
+
 var temperatureRange, temperatureBinWidth;
 var precipRange, precipBinWidth;
 
@@ -170,6 +173,10 @@ $(document).ready(function() {
     initCrossfilter(data);
 
     theMap = mapChart.map();
+
+    L.easyButton('glyphicon-home', function(btn, map){
+        map.setView(mapCenter, mapZoom);
+    }, "Zoom home").addTo(theMap);
 
     mapmadeUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     mapmade = new L.TileLayer(mapmadeUrl, { maxZoom: mapMaxZoom+1});
@@ -1477,8 +1484,8 @@ function initCrossfilter(data) {
       .height(400)
       .dimension(mapDim)
       .group(mapGroup)
-      .center([60, 69])
-      .zoom(3)
+      .center(mapCenter)
+      .zoom(mapZoom)
       .tiles(function(map) {			// overwrite default baselayer
 	   return L.tileLayer(
                 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
