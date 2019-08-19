@@ -26,9 +26,9 @@ var workerDim,
     // dimension for the location uncertainty
     locationDim,
     // dimensions for temperature values (DJF, MAM, JJA, SON, Annual)
-    temperatureDims,
+    temperatureDims = [],
     // dimensions for precipitation values (DJF, MAM, JJA, SON, Annual)
-    precipDims;
+    precipDims = [];
 
 var temperatureGroups,
     precipGroups;
@@ -69,42 +69,57 @@ var dataTable,
 // all charts except the map
 var allCharts;
 
+// The initial center for the map
 var mapCenter = [60, 69],
     mapZoom = 3;
 
-var temperatureRange, temperatureBinWidth;
-var precipRange, precipBinWidth;
+// The x-limits and bin widths for the temperature chart
+const temperatureRange = [-20, 40.];
+const temperatureBinWidth = 2.;
 
+// The x-limits and bin widths for the precipitation chart
+const precipRange = [0, 150.];
+const precipBinWidth = 1;
+
+// The months as seasons as in the Temperature and Precipitation meta
+// data properties
 var monthsSeasons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
                      'Sep', 'Oct', 'Nov', 'Dec', 'DJF', 'MAM', 'JJA', 'SON', 'Ann'];
 
-
+// The JSON editor to edit the meta data
 var editor;
 
+// The Id of the last displayed element
 var displayedId = -1;
+
+// The meta data of the last displayed sample
 var displayedData = {};
 
+// The path to the marker
 var imgMarker = 'img/marker.png',
     imgMarkerHighlight = 'img/marker_highlight.png';
 
+// EMPD version
 var dataVersion = "stable";  // stable, latest or custum
 
+// url for the latest and stable EMPD-data repository
 var urlStable, urlLatest;
 
+// default properties for the JSON editor
 var defaultEditorProperties = {"Id": {"type": "integer", "required": true}}
 
-var diagramJSON = {};
-
+// All markers on the map
 var mapMarkers = {};
 
 // Query parameters
 var user_commit, user_branch, user_repo, user_meta_file;
 
-// data specifiers
+// EMPD-data specifiers
 var repo_url = 'data/',
     meta_file = 'meta.tsv',
     data_repo = 'EMPD2/EMPD-data';
 
+// Pollen data that has been plotted
 var plottedPollenData = {};  // The pollen data plotted
 
 dc.config.defaultColors(d3.schemeRdBu[11])
@@ -880,10 +895,6 @@ function initCrossfilter(data) {
   }, true);
 
   //-----------------------------------
-  temperatureRange = [-20, 40.];
-  temperatureBinWidth = 2.;
-  temperatureDims = [];
-  temperatureGroups = [];
   for (var i = 12; i < monthsSeasons.length; i++) {
       var temperatureDim = xf.dimension( function(d) {
         	// Threshold
@@ -900,10 +911,6 @@ function initCrossfilter(data) {
   };
 
   //-----------------------------------
-  precipRange = [0, 150.];
-  precipBinWidth = 1;
-  precipDims = [];
-  precipGroups = [];
   for (i = 12; i < monthsSeasons.length; i++) {
       var precipDim = xf.dimension( function(d) {
           // Threshold
