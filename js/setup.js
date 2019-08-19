@@ -30,8 +30,8 @@ var workerDim,
     // dimensions for precipitation values (DJF, MAM, JJA, SON, Annual)
     precipDims = [];
 
-var temperatureGroups,
-    precipGroups;
+var temperatureGroups = [],
+    precipGroups = [];
 
 // The various charts for the crossfilter
 //
