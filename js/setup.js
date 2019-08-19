@@ -127,543 +127,554 @@ dc.config.defaultColors(d3.schemeRdBu[11])
 //====================================================================
 $(document).ready(function() {
 
-  const urlParams = new URLSearchParams(window.location.search);
-  user_commit = urlParams.get('commit');
-  user_branch = urlParams.get('branch');
-  user_repo = urlParams.get('repo');
-  user_meta_file = urlParams.get('meta');
+    //-----------------------------------
+    // setup the version buttons and get the url for the EMPD-data
+    const urlParams = new URLSearchParams(window.location.search);
+    user_commit = urlParams.get('commit');
+    user_branch = urlParams.get('branch');
+    user_repo = urlParams.get('repo');
+    user_meta_file = urlParams.get('meta');
 
-  data_repo = user_repo ? user_repo : 'EMPD2/EMPD-data';
-  meta_file = user_meta_file ? user_meta_file : meta_file
+    data_repo = user_repo ? user_repo : 'EMPD2/EMPD-data';
+    meta_file = user_meta_file ? user_meta_file : meta_file
 
-  if (user_commit) {
-      repo_url = 'https://raw.githubusercontent.com/' + data_repo + '/' + user_commit + '/';
-      user_branch = 'master';
-  } else if (user_branch) {
-      repo_url = 'https://raw.githubusercontent.com/' + data_repo + '/' + user_branch + '/';
-  } else if (user_repo) {
-      user_branch = 'master';
-      repo_url = 'https://raw.githubusercontent.com/' + data_repo + '/' + user_branch + '/';
-  } else {
-      repo_url = 'data/';
-      user_branch = 'master';
-  }
+    if (user_commit) {
+        repo_url = 'https://raw.githubusercontent.com/' + data_repo + '/' + user_commit + '/';
+        user_branch = 'master';
+    } else if (user_branch) {
+        repo_url = 'https://raw.githubusercontent.com/' + data_repo + '/' + user_branch + '/';
+    } else if (user_repo) {
+        user_branch = 'master';
+        repo_url = 'https://raw.githubusercontent.com/' + data_repo + '/' + user_branch + '/';
+    } else {
+        repo_url = 'data/';
+        user_branch = 'master';
+    }
 
-  urlStable = location.protocol + "//" + location.host + location.pathname;
-  urlLatest = urlStable + "?branch=master";
-  document.getElementById("btn-stable").href = urlStable;
-  document.getElementById("btn-latest").href = urlLatest;
+    urlStable = location.protocol + "//" + location.host + location.pathname;
+    urlLatest = urlStable + "?branch=master";
+    document.getElementById("btn-stable").href = urlStable;
+    document.getElementById("btn-latest").href = urlLatest;
 
-  if (repo_url == 'data/') {
-      document.getElementById("btn-stable").className += ' btn-primary';
-      dataVersion = "stable";
-      document.getElementById("version-info").innerHTML += (
+    if (repo_url == 'data/') {
+        document.getElementById("btn-stable").className += ' btn-primary';
+        dataVersion = "stable";
+        document.getElementById("version-info").innerHTML += (
           `This is the last release of the EMPD, version 1, based on Davis, B.A.S. et al. Veget Hist Archaeobot (2013) 22: 521. <a href="https://doi.org/10.1007/s00334-012-0388-5" target="_blank" class="alert-link">10.1007/s00334-012-0388-5</a>. To view the latest version from Github, click <a href="${urlLatest}" class="alert-link">here</a>.`)
-  } else if (data_repo == "EMPD2/EMPD-data" && user_branch == "master") {
-      document.getElementById("btn-latest").className += ' btn-primary';
-      dataVersion = "latest";
-      document.getElementById("version-info").innerHTML += (
+    } else if (data_repo == "EMPD2/EMPD-data" && user_branch == "master") {
+        document.getElementById("btn-latest").className += ' btn-primary';
+        dataVersion = "latest";
+        document.getElementById("version-info").innerHTML += (
           `This is the latest version of the EMPD from <a href="https://github.com/EMPD2/EMPD-data" class="alert-link">Github</a>. Please bear in mind that this data might be subject to change before the next release! To view the last stable version, click <a href="${urlStable}" class="alert-link">here</a>.`)
-  } else {
-      document.getElementById("btn-custom").className += ' btn-primary';
-      dataVersion = "custom";
-      $("#version-info").hide();
-  }
+    } else {
+        document.getElementById("btn-custom").className += ' btn-primary';
+        dataVersion = "custom";
+        $("#version-info").hide();
+    }
 
-  d3.tsv(repo_url + meta_file, parseMeta).then(function(data){
+    //-----------------------------------
+    // load the meta data
+    d3.tsv(repo_url + meta_file, parseMeta).then(function(data){
 
-    d3.tsv(
-        repo_url + 'postgres/scripts/tables/GroupID.tsv', function (d) {
-            if ("make_percent" in d) d.percent_values = d.make_percent;
-            groupInfo[d.groupid] = d
+        // fill the groupInfo
+        d3.tsv(
+            repo_url + 'postgres/scripts/tables/GroupID.tsv', function (d) {
+                if ("make_percent" in d) d.percent_values = d.make_percent;
+                groupInfo[d.groupid] = d
 
-            if (typeof(groupNames[d.groupid]) == "undefined") {
-                groupNames[d.groupid] = d.groupname;
-            }
-            return d;
-        });
+                if (typeof(groupNames[d.groupid]) == "undefined") {
+                    groupNames[d.groupid] = d.groupname;
+                }
+                return d;
+            });
 
-    initCrossfilter(data);
+        // initialize the cross filter
+        initCrossfilter(data);
 
-    theMap = mapChart.map();
+        //-----------------------------------
+        // Setup some controls for the map
+        theMap = mapChart.map();
 
-    L.easyButton('glyphicon-home', function(btn, map){
-        map.setView(mapCenter, mapZoom);
-    }, "Zoom home").addTo(theMap);
+        // zoom home button
+        L.easyButton('glyphicon-home', function(btn, map){
+            map.setView(mapCenter, mapZoom);
+        }, "Zoom home").addTo(theMap);
 
-    mapmadeUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    mapmade = new L.TileLayer(mapmadeUrl, { maxZoom: mapMaxZoom+1});
+        mapmadeUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+        mapmade = new L.TileLayer(mapmadeUrl, { maxZoom: mapMaxZoom+1});
 
-    new L.Control.MiniMap(mapmade, { toggleDisplay: true, zoomLevelOffset: -4 }).addTo(theMap);
+        // minimap
+        new L.Control.MiniMap(mapmade, { toggleDisplay: true, zoomLevelOffset: -4 }).addTo(theMap);
 
-    new L.Control.MousePosition({
-        lngFirst: true,
-        position: "topright",
-        numDigits: 2
-    }).addTo(theMap);
+        // mouse position label to display latitude and longitude of the cursor
+        new L.Control.MousePosition({
+            lngFirst: true,
+            position: "topright",
+            numDigits: 2
+        }).addTo(theMap);
 
-    //----------------------------------------------------------------
-    // Events handling
-    $('#button_cartadd').click(function() {
-      	selection = tableDim.top(Infinity);
-            selection.forEach(function(d) {
-    		data[d.Id -1].Selected = true;
-    	});
+        //----------------------------------------------------------------
+        // Events handling for download management
+        $('#button_cartadd').click(function() {
+          	selection = tableDim.top(Infinity);
+                selection.forEach(function(d) {
+            data[d.Id -1].Selected = true;
+        	});
+                formattedDataTable.redraw();
+                dataTable.redraw();
+            });
+
+        $('#button_cartdelete').click(function() {
+            data.forEach(function(d,i) { d.Selected = false; });
             formattedDataTable.redraw();
             dataTable.redraw();
         });
 
-    $('#button_cartdelete').click(function() {
-        data.forEach(function(d,i) { d.Selected = false; });
-        formattedDataTable.redraw();
-        dataTable.redraw();
-    });
-
-    $('#button_shipping').mouseover(function() {
-        nbSelection = 0;
-        data.forEach(function(d,i) {
-            if (d.Selected == true) nbSelection++;
-        });
-        downloadType = document.getElementById("download-type").value;
-        $('#button_shipping').prop('title', 'Deliver ' + downloadType + ' of cart as tab-separated file (currently ' + nbSelection.toString() + ' items)');
-    });
-
-    $("#button_shipping").click(function() {
-
-    var downloadType = document.getElementById("download-type").value;
-
-    if (downloadType == "data") {
-        var sampleNames = []
-        data.forEach(function(d) {if (d.Selected == true) sampleNames.push(d.SampleName);});
-
-        function ignoreError(task, callback) {
-          task(function(error, result) {
-              if (error) console.error(error);
-              return callback(null, result); // ignore error, e.g. 404-ing
-          });
-        }
-
-        var promises = [];
-
-        sampleNames.forEach(function(sampleName) {promises.push(d3.tsv(
-            repo_url + 'samples/' + sampleName + '.tsv',
-            function(d) {d.samplename = sampleName; return d;}))
+        $('#button_shipping').mouseover(function() {
+            nbSelection = 0;
+            data.forEach(function(d,i) {
+                if (d.Selected == true) nbSelection++;
+            });
+            downloadType = document.getElementById("download-type").value;
+            $('#button_shipping').prop('title', 'Deliver ' + downloadType + ' of cart as tab-separated file (currently ' + nbSelection.toString() + ' items)');
         });
 
-        Promise.all(promises).then(function(data) { downloadJSON(data.flat(), 'data.tsv')});
-     } else {
-        downloadJSON(data.filter(function(d){return d.Selected == true}), 'metadata.tsv')
-     }
+        $("#button_shipping").click(function() {
 
-    });
+        var downloadType = document.getElementById("download-type").value;
 
-    $("#download-edits").click(function() {
-        downloadJSON(data.filter(function(d){return d.Edited == true}),
-                     'metadata.tsv');
-    });
+        if (downloadType == "data") {
+            var sampleNames = []
+            data.forEach(function(d) {if (d.Selected == true) sampleNames.push(d.SampleName);});
 
-    if (dataVersion != "custom") {
-        document.getElementById("submit-instructions").innerHTML += (
-            " Please download the metadata using the button below and send it via mail."
-        );
-        $("#submit-form").hide();
-    } else {
-        document.getElementById("submit-instructions").innerHTML += (
-            " You can download the metadata using the button below and send it via mail, or you submit it by filling out the form below. Note that the latter  is only possible if the pull request has the label <code>viewer-editable</code>. You can set this label if you write <code>@EMPD-admin allow-edits</code> in a comment in this PR."
-        );
-    }
-
-    if (dataVersion == "custom") {
-        document.getElementById("report-instructions").innerHTML = (
-            `Issues can only be submitted for the <a href="${urlStable}">stable</a> or <a href="${urlLatest}">latest</a> version.`
-        );
-        $("#report-form").hide();
-    }
-
-    // load diagram on popup
-    theMap.on('popupopen', function(event) {
-        Id = event.popup._source.key[2] - 1;
-        displayedId = data[Id].Id;
-        displayedData = data[Id];
-        highlightDisplayed();
-
-        var activeTab = $('#climate-plot').hasClass("active") ? "climate-plot" : "pollen-plot";
-        removeUnlocked();
-
-        var pollenData = [];
-            d3.tsv(
-                repo_url + 'samples/' + data[Id].SampleName + '.tsv',
-                function(d) {
-                    d.higher_groupid = groupInfo[d.groupid].higher_groupid;
-                    d.samplename = data[Id].SampleName;
-                    d.percentage = d.percentage == '' ? NaN : +d.percentage;
-                    d.count = d.count == '' ? NaN : +d.count;
-                    return d
-                }).then(function(taxa_data) {
-
-                    taxa_data = taxa_data.filter(d => !isNaN(d.percentage))
-
-                    document.getElementById("pollen-diagram-legend").innerHTML = "<svg/>";
-                    document.getElementById("climate-diagram-legend").innerHTML = "<svg/>";
-
-                    var elemId = lockableElement("pollen-diagram", data[Id].SampleName, data[Id].SiteName);
-                    $('#meta-tabs a[href="#pollen-plot"]').tab('show');
-                    plotPollen(taxa_data, elemId);
-                    plotPollenLegend('pollen-diagram-legend');
-
-                    var elemId = lockableElement("climate-diagram", data[Id].SampleName, data[Id].SiteName);
-                    $('#meta-tabs a[href="#climate-plot"]').tab('show');
-                    plotClimate(data[Id], elemId);
-                    plotClimateLegend("climate-diagram-legend");
-
-                    $('#meta-tabs a[href="#' + activeTab + '"]').tab('show');
-
-                    plottedPollenData[data[Id].SampleName] = taxa_data;
-                });
-
-    });
-    theMap.on('popupclose', function(event) {
-        Id = event.popup._source.key[2] - 1;
-        if (editor.root.collapsed == false) {
-            editor.root.toggle_button.click();
-        }
-        displayedId = -1;
-        displayedData = {};
-        highlightDisplayed();
-    });
-
-    ['chart-table', 'formatted-chart-table'].forEach(function(tableId) {
-        // Add ellipses for long entries and make DOI a hyperlink to google scholar
-        $('#' + tableId).on('mouseover', '.dc-table-column', function() {
-          // displays popup only if text does not fit in col width
-          if (this.offsetWidth < this.scrollWidth) {
-            d3.select(this).attr('title', d3.select(this).text());
-          }
-        });
-
-        // Make DOI a hyperlink to google scholar and handle selection
-        $('#' + tableId).on('click', '.dc-table-column', function() {
-          column = d3.select(this).attr("class");
-          if (column == "dc-table-column _0") {
-              Id = d3.select(this.parentNode).select(".dc-table-column._1").text();
-             	data[Id-1].Selected = d3.select(this).select('input').property('checked');
-          } else {
-              Id = d3.select(this.parentNode).select(".dc-table-column._1").text();
-          	  dataTable.filter(Id);
-          	  dc.redrawAll();
-          	  // make reset link visible
-              d3.select("#resetFormattedTableLink").style("display", "inline");
-              d3.select("#resetTableLink").style("display", "inline");
-          }
-        });
-    });
-
-    markers = mapChart.markerGroup();
-    markers.on('clustermouseover', function (a) {
-      childMarkers = a.layer.getAllChildMarkers();
-      childMarkersIds = childMarkers.map(function(obj) {return obj.key[2]}).sort();
-
-      if ($('#meta-table').hasClass("active")) {
-          childMarkersIds.forEach(function(Id, i) {
-          	d3.selectAll(".dc-table-column._1")
-          		.text(function (d) {
-          	     		if (parseInt(d.Id) == Id) {
-          				if (i==0) this.parentNode.scrollIntoView();  // scroll for first
-          	                 	d3.select(this.parentNode).style("font-weight", "bold");
-                        document.getElementById('wrap').scrollIntoView();
-          	               	}
-          	     		return d.Id;
-                  	});
-          });
-      };
-    });
-    markers.on('clustermouseout', function (a) {
-      highlightDisplayed();
-    });
-
-    // fill default properties
-    ["Longitude", "Latitude", "Elevation", "AreaOfSite", "AgeBP"].forEach(
-        function(numberField) {
-            defaultEditorProperties[numberField] = {
-                "type": "number",
-            };
-        }
-    );
-    defaultEditorProperties["Longitude"]["maximum"] = 360.;
-    defaultEditorProperties["Longitude"]["minimum"] = -180.;
-    defaultEditorProperties["Latitude"]["maximum"] = 90;
-    defaultEditorProperties["Latitude"]["minimum"] = -90;
-    defaultEditorProperties["AreaOfSite"]["minimum"] = 0;
-
-    // fill boolean properties
-    ['ispercent', 'Selected', 'Edited'].forEach(function (booleanField) {
-        defaultEditorProperties[booleanField] = {
-            "type": "boolean",
-            "format": "checkbox",
-        };
-    });
-
-    // fill fixed tables
-    var promises = [];
-    var fixedMap = {
-        "LocationReliability": "Location Reliability",
-        "SampleContext": "Sample Context",
-        "GroupID": "groupid",
-        "Country": "Country",
-        "SampleType": "SampleType",
-        "AgeUncertainty": "Age Uncertainty",
-        "SampleMethod": "CollectionMethod"
-    };
-
-    Object.keys(fixedMap).forEach(function (name) {
-        var colname = fixedMap[name];
-        defaultEditorProperties[name] = {
-            "type": "string",
-            "enum": [""],
-        };
-        promises.push(d3.tsv(
-            repo_url + 'postgres/scripts/tables/' + name + '.tsv',
-            function(d) {
-                defaultEditorProperties[name]["enum"].push(
-                    d[colname]);
-                return d;
-            }));
-    });
-
-    var workers = ['Worker1', 'Worker2', 'Worker3', 'Worker4'];
-    workers.forEach(function (worker) {
-        defaultEditorProperties[worker + '_Role'] = {
-            "type": "string",
-            "enum": [""],
-        };
-        defaultEditorProperties[worker + '_Email1'] = {
-            "type": "string",
-            "format": "email",
-        };
-        defaultEditorProperties[worker + '_Email2'] = {
-            "type": "string",
-            "format": "email",
-        };
-    });
-
-    promises.push(d3.tsv(
-        repo_url + 'postgres/scripts/tables/WorkerRole.tsv',
-        function(d) {
-            workers.forEach(function(worker) {
-                defaultEditorProperties[worker + '_Role']["enum"].push(
-                    d["WorkerRole"]);
-                });
-                return d;
-            }));
-
-    Promise.all(promises).then(function(res) {
-        var editor_element = document.getElementById('editor_holder');
-
-        var editor_schema = {
-            "type": "object",
-            "title": "Edit meta data",
-            "options": {
-                "collapsed": true,
-            },
-            "properties": {}
-        };
-
-        for (var key in data[0]) {
-            if (typeof defaultEditorProperties[key] !== 'undefined') {
-                editor_schema["properties"][key] = defaultEditorProperties[key];
-            } else {
-                editor_schema["properties"][key] = {"type": "string"};
+            function ignoreError(task, callback) {
+              task(function(error, result) {
+                  if (error) console.error(error);
+                  return callback(null, result); // ignore error, e.g. 404-ing
+              });
             }
+
+            var promises = [];
+
+            sampleNames.forEach(function(sampleName) {promises.push(d3.tsv(
+                repo_url + 'samples/' + sampleName + '.tsv',
+                function(d) {d.samplename = sampleName; return d;}))
+            });
+
+            Promise.all(promises).then(function(data) { downloadJSON(data.flat(), 'data.tsv')});
+         } else {
+            downloadJSON(data.filter(function(d){return d.Selected == true}), 'metadata.tsv')
+         }
+
+        });
+
+        $("#download-edits").click(function() {
+            downloadJSON(data.filter(function(d){return d.Edited == true}),
+                         'metadata.tsv');
+        });
+
+        if (dataVersion != "custom") {
+            document.getElementById("submit-instructions").innerHTML += (
+                " Please download the metadata using the button below and send it via mail."
+            );
+            $("#submit-form").hide();
+        } else {
+            document.getElementById("submit-instructions").innerHTML += (
+                " You can download the metadata using the button below and send it via mail, or you submit it by filling out the form below. Note that the latter  is only possible if the pull request has the label <code>viewer-editable</code>. You can set this label if you write <code>@EMPD-admin allow-edits</code> in a comment in this PR."
+            );
+        }
+
+        if (dataVersion == "custom") {
+            document.getElementById("report-instructions").innerHTML = (
+                `Issues can only be submitted for the <a href="${urlStable}">stable</a> or <a href="${urlLatest}">latest</a> version.`
+            );
+            $("#report-form").hide();
+        }
+
+        // load diagram on popup
+        theMap.on('popupopen', function(event) {
+            Id = event.popup._source.key[2] - 1;
+            displayedId = data[Id].Id;
+            displayedData = data[Id];
+            highlightDisplayed();
+
+            var activeTab = $('#climate-plot').hasClass("active") ? "climate-plot" : "pollen-plot";
+            removeUnlocked();
+
+            var pollenData = [];
+                d3.tsv(
+                    repo_url + 'samples/' + data[Id].SampleName + '.tsv',
+                    function(d) {
+                        d.higher_groupid = groupInfo[d.groupid].higher_groupid;
+                        d.samplename = data[Id].SampleName;
+                        d.percentage = d.percentage == '' ? NaN : +d.percentage;
+                        d.count = d.count == '' ? NaN : +d.count;
+                        return d
+                    }).then(function(taxa_data) {
+
+                        taxa_data = taxa_data.filter(d => !isNaN(d.percentage))
+
+                        document.getElementById("pollen-diagram-legend").innerHTML = "<svg/>";
+                        document.getElementById("climate-diagram-legend").innerHTML = "<svg/>";
+
+                        var elemId = lockableElement("pollen-diagram", data[Id].SampleName, data[Id].SiteName);
+                        $('#meta-tabs a[href="#pollen-plot"]').tab('show');
+                        plotPollen(taxa_data, elemId);
+                        plotPollenLegend('pollen-diagram-legend');
+
+                        var elemId = lockableElement("climate-diagram", data[Id].SampleName, data[Id].SiteName);
+                        $('#meta-tabs a[href="#climate-plot"]').tab('show');
+                        plotClimate(data[Id], elemId);
+                        plotClimateLegend("climate-diagram-legend");
+
+                        $('#meta-tabs a[href="#' + activeTab + '"]').tab('show');
+
+                        plottedPollenData[data[Id].SampleName] = taxa_data;
+                    });
+
+        });
+        theMap.on('popupclose', function(event) {
+            Id = event.popup._source.key[2] - 1;
+            if (editor.root.collapsed == false) {
+                editor.root.toggle_button.click();
+            }
+            displayedId = -1;
+            displayedData = {};
+            highlightDisplayed();
+        });
+
+        ['chart-table', 'formatted-chart-table'].forEach(function(tableId) {
+            // Add ellipses for long entries and make DOI a hyperlink to google scholar
+            $('#' + tableId).on('mouseover', '.dc-table-column', function() {
+              // displays popup only if text does not fit in col width
+              if (this.offsetWidth < this.scrollWidth) {
+                d3.select(this).attr('title', d3.select(this).text());
+              }
+            });
+
+            // Make DOI a hyperlink to google scholar and handle selection
+            $('#' + tableId).on('click', '.dc-table-column', function() {
+              column = d3.select(this).attr("class");
+              if (column == "dc-table-column _0") {
+                  Id = d3.select(this.parentNode).select(".dc-table-column._1").text();
+                 	data[Id-1].Selected = d3.select(this).select('input').property('checked');
+              } else {
+                  Id = d3.select(this.parentNode).select(".dc-table-column._1").text();
+              	  dataTable.filter(Id);
+              	  dc.redrawAll();
+              	  // make reset link visible
+                  d3.select("#resetFormattedTableLink").style("display", "inline");
+                  d3.select("#resetTableLink").style("display", "inline");
+              }
+            });
+        });
+
+        markers = mapChart.markerGroup();
+        markers.on('clustermouseover', function (a) {
+            childMarkers = a.layer.getAllChildMarkers();
+            childMarkersIds = childMarkers.map(function(obj) {return obj.key[2]}).sort();
+
+            if ($('#meta-table').hasClass("active")) {
+              childMarkersIds.forEach(function(Id, i) {
+              	d3.selectAll(".dc-table-column._1")
+              		.text(function (d) {
+              	     		if (parseInt(d.Id) == Id) {
+              				if (i==0) this.parentNode.scrollIntoView();  // scroll for first
+              	                 	d3.select(this.parentNode).style("font-weight", "bold");
+                            document.getElementById('wrap').scrollIntoView();
+              	               	}
+              	     		return d.Id;
+                      	});
+              });
+            };
+        });
+        markers.on('clustermouseout', function (a) {
+            highlightDisplayed();
+        });
+
+        // fill default properties
+        ["Longitude", "Latitude", "Elevation", "AreaOfSite", "AgeBP"].forEach(
+            function(numberField) {
+                defaultEditorProperties[numberField] = {
+                    "type": "number",
+                };
+            }
+        );
+        defaultEditorProperties["Longitude"]["maximum"] = 360.;
+        defaultEditorProperties["Longitude"]["minimum"] = -180.;
+        defaultEditorProperties["Latitude"]["maximum"] = 90;
+        defaultEditorProperties["Latitude"]["minimum"] = -90;
+        defaultEditorProperties["AreaOfSite"]["minimum"] = 0;
+
+        // fill boolean properties
+        ['ispercent', 'Selected', 'Edited'].forEach(function (booleanField) {
+            defaultEditorProperties[booleanField] = {
+                "type": "boolean",
+                "format": "checkbox",
+            };
+        });
+
+        // fill fixed tables
+        var promises = [];
+        var fixedMap = {
+            "LocationReliability": "Location Reliability",
+            "SampleContext": "Sample Context",
+            "GroupID": "groupid",
+            "Country": "Country",
+            "SampleType": "SampleType",
+            "AgeUncertainty": "Age Uncertainty",
+            "SampleMethod": "CollectionMethod"
         };
-        editor = new JSONEditor(editor_element, {
-            "theme": 'bootstrap3',
-            "template": "handlebars",
-            "iconlib": "bootstrap3",
-            "no_additional_properties": true,
-            "schema": editor_schema,
+
+        Object.keys(fixedMap).forEach(function (name) {
+            var colname = fixedMap[name];
+            defaultEditorProperties[name] = {
+                "type": "string",
+                "enum": [""],
+            };
+            promises.push(d3.tsv(
+                repo_url + 'postgres/scripts/tables/' + name + '.tsv',
+                function(d) {
+                    defaultEditorProperties[name]["enum"].push(
+                        d[colname]);
+                    return d;
+                }));
         });
-        editor.disable();
 
-        document.getElementById('btn-save').addEventListener(
-            'click',function() {// Get the value from the editor
-                var errors = editor.validate();
+        var workers = ['Worker1', 'Worker2', 'Worker3', 'Worker4'];
+        workers.forEach(function (worker) {
+            defaultEditorProperties[worker + '_Role'] = {
+                "type": "string",
+                "enum": [""],
+            };
+            defaultEditorProperties[worker + '_Email1'] = {
+                "type": "string",
+                "format": "email",
+            };
+            defaultEditorProperties[worker + '_Email2'] = {
+                "type": "string",
+                "format": "email",
+            };
+        });
 
-                if (errors.length) {
-                  // errors is an array of objects, each with a `path`, `property`, and `message` parameter
-                  // `property` is the schema keyword that triggered the validation error (e.g. "minLength")
-                  // `path` is a dot separated path into the JSON object (e.g. "root.path.to.field")
-                  console.log(errors);
+        promises.push(d3.tsv(
+            repo_url + 'postgres/scripts/tables/WorkerRole.tsv',
+            function(d) {
+                workers.forEach(function(worker) {
+                    defaultEditorProperties[worker + '_Role']["enum"].push(
+                        d["WorkerRole"]);
+                    });
+                    return d;
+                }));
+
+        Promise.all(promises).then(function(res) {
+            var editor_element = document.getElementById('editor_holder');
+
+            var editor_schema = {
+                "type": "object",
+                "title": "Edit meta data",
+                "options": {
+                    "collapsed": true,
+                },
+                "properties": {}
+            };
+
+            for (var key in data[0]) {
+                if (typeof defaultEditorProperties[key] !== 'undefined') {
+                    editor_schema["properties"][key] = defaultEditorProperties[key];
+                } else {
+                    editor_schema["properties"][key] = {"type": "string"};
                 }
-                else {
-                    var value = editor.getValue();
-                    var i = +value.Id - 1;
-                    Object.keys(value).forEach(
-                        function(key) {data[i][key] = value[key];}
-                    );
-                    var selected = value.Selected;
+            };
+            editor = new JSONEditor(editor_element, {
+                "theme": 'bootstrap3',
+                "template": "handlebars",
+                "iconlib": "bootstrap3",
+                "no_additional_properties": true,
+                "schema": editor_schema,
+            });
+            editor.disable();
 
-                    value = parseMeta(data[i], i);
+            document.getElementById('btn-save').addEventListener(
+                'click',function() {// Get the value from the editor
+                    var errors = editor.validate();
 
-                    value.Selected = selected;
-                    value["Edited"] = true;
-                    data[i] = value;
-                    mapMarkers[value.Id - 1]._popup.setContent(getPopupContent(value));
-                    resetData(value);
-                }
+                    if (errors.length) {
+                      // errors is an array of objects, each with a `path`, `property`, and `message` parameter
+                      // `property` is the schema keyword that triggered the validation error (e.g. "minLength")
+                      // `path` is a dot separated path into the JSON object (e.g. "root.path.to.field")
+                      console.log(errors);
+                    }
+                    else {
+                        var value = editor.getValue();
+                        var i = +value.Id - 1;
+                        Object.keys(value).forEach(
+                            function(key) {data[i][key] = value[key];}
+                        );
+                        var selected = value.Selected;
+
+                        value = parseMeta(data[i], i);
+
+                        value.Selected = selected;
+                        value["Edited"] = true;
+                        data[i] = value;
+                        mapMarkers[value.Id - 1]._popup.setContent(getPopupContent(value));
+                        resetData(value);
+                    }
+            });
         });
-    });
 
-    $("#submit-form").submit(function(e){
-        var form = $(this);
-        var rawForm = form.serializeArray();
-        var formData = {};
-        for (var i = 0; i < rawForm.length; i++){
-            formData[rawForm[i]['name']] = rawForm[i]['value'];
-        }
+        $("#submit-form").submit(function(e){
+            var form = $(this);
+            var rawForm = form.serializeArray();
+            var formData = {};
+            for (var i = 0; i < rawForm.length; i++){
+                formData[rawForm[i]['name']] = rawForm[i]['value'];
+            }
 
-        formData["repo"] = data_repo;
-        formData["branch"] = user_branch;
-        formData["meta"] = meta_file;
-        formData["metadata"] = data.filter(function(d){return d.Edited == true});
+            formData["repo"] = data_repo;
+            formData["branch"] = user_branch;
+            formData["meta"] = meta_file;
+            formData["metadata"] = data.filter(function(d){return d.Edited == true});
 
-        if (typeof(grecaptcha) === "undefined") {
-            $("#submit-failed").html(
-                "Please enable the javascript for Google Recaptcha to submit issues!");
-            $("#submit-failed").show();
-            $("#submit-successed").hide();
-            $("#submit-info").hide();
-            return false;
-        }
+            if (typeof(grecaptcha) === "undefined") {
+                $("#submit-failed").html(
+                    "Please enable the javascript for Google Recaptcha to submit issues!");
+                $("#submit-failed").show();
+                $("#submit-successed").hide();
+                $("#submit-info").hide();
+                return false;
+            }
 
-        grecaptcha.ready(function() {
-            grecaptcha.execute('6LflGpsUAAAAAKhm3e-A5q30qh1099ZZeF884Vld',{action: 'submit_data'}).then(
-                function(token) {
-                    formData["token"] = token;
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LflGpsUAAAAAKhm3e-A5q30qh1099ZZeF884Vld',{action: 'submit_data'}).then(
+                    function(token) {
+                        formData["token"] = token;
 
-                    $("#submit-info").html(`Please be patient, I am pinging to EMPD-admin at <a href='${form.attr('action')}'>${form.attr('action')}</a> to see if it is awake. This may take up to two minutes...`);
-                    $("#submit-failed").hide();
-                    $("#submit-successed").hide();
-                    $("#submit-info").show();
+                        $("#submit-info").html(`Please be patient, I am pinging to EMPD-admin at <a href='${form.attr('action')}'>${form.attr('action')}</a> to see if it is awake. This may take up to two minutes...`);
+                        $("#submit-failed").hide();
+                        $("#submit-successed").hide();
+                        $("#submit-info").show();
 
-                    // Ping the EMPD-admin to see if it is awake
-                    $.get(form.attr('action')).then(
-                        // Ping succeeded
-                        function(result, status) {
+                        // Ping the EMPD-admin to see if it is awake
+                        $.get(form.attr('action')).then(
+                            // Ping succeeded
+                            function(result, status) {
 
-                            $("#submit-info").html("Please be patient, we are just dealing with your data. This may take one or two minutes and you should receive an email to " + formData.submitter_mail);
+                                $("#submit-info").html("Please be patient, we are just dealing with your data. This may take one or two minutes and you should receive an email to " + formData.submitter_mail);
 
-                            // Send the POST request
-                            $.post(form.attr('action') + "/empd-viewer/hook", JSON.stringify(formData)).then(
-                                // Post succeeded
-                                function(result, status) {
-                                    $("#submit-successed").html(status + ": " + result);
-                                    data.forEach(function (d) {d.Edited = false;});
-                                    $("#submit-info").hide();
-                                    $("#submit-failed").hide();
-                                    $("#submit-successed").show();
-                                },
-                                // Post failed
-                                function(jqxhr, status, errorThrown) {
-                                    $("#submit-failed").html(status + ": " + jqxhr.responseText);
-                                    $("#submit-info").hide();
-                                    $("#submit-successed").hide();
-                                    $("#submit-failed").show();
+                                // Send the POST request
+                                $.post(form.attr('action') + "/empd-viewer/hook", JSON.stringify(formData)).then(
+                                    // Post succeeded
+                                    function(result, status) {
+                                        $("#submit-successed").html(status + ": " + result);
+                                        data.forEach(function (d) {d.Edited = false;});
+                                        $("#submit-info").hide();
+                                        $("#submit-failed").hide();
+                                        $("#submit-successed").show();
+                                    },
+                                    // Post failed
+                                    function(jqxhr, status, errorThrown) {
+                                        $("#submit-failed").html(status + ": " + jqxhr.responseText);
+                                        $("#submit-info").hide();
+                                        $("#submit-successed").hide();
+                                        $("#submit-failed").show();
+                                });
+                            },
+                            // Ping failed
+                            function(jqxhr, status, errorThrown) {
+                                $("#submit-failed").html("Could not reach the EMPD-admin<br>" + status + ": " + errorThrown);
+                                $("#submit-info").hide();
+                                $("#submit-successed").hide();
+                                $("#submit-failed").show();
                             });
-                        },
-                        // Ping failed
-                        function(jqxhr, status, errorThrown) {
-                            $("#submit-failed").html("Could not reach the EMPD-admin<br>" + status + ": " + errorThrown);
-                            $("#submit-info").hide();
-                            $("#submit-successed").hide();
-                            $("#submit-failed").show();
-                        });
 
-                });
-        });
-        return false;
-    });
-
-    $("#submit-info").hide();
-    $("#submit-failed").hide();
-    $("#submit-successed").hide();
-
-    $("#report-form").submit(function(e){
-        var form = $(this);
-        var rawForm = form.serializeArray();
-        var formData = {};
-        for (var i = 0; i < rawForm.length; i++){
-            formData[rawForm[i]['name']] = rawForm[i]['value'];
-        }
-
-        formData["repo"] = data_repo;
-        formData["branch"] = user_branch;
-
-        if (typeof(grecaptcha) === "undefined") {
-            $("#report-failed").html(
-                "Please enable the javascript for Google Recaptcha to submit issues!");
-            $("#report-failed").show();
-            $("#report-successed").hide();
-            $("#report-info").hide();
+                    });
+            });
             return false;
-        }
-
-        grecaptcha.ready(function() {
-            grecaptcha.execute('6LflGpsUAAAAAKhm3e-A5q30qh1099ZZeF884Vld',{action: 'report_issue'}).then(
-                function(token) {
-                    formData["token"] = token;
-                    $("#report-info").html(`Please be patient, I am pinging to EMPD-admin at <a href='${form.attr('action')}'>${form.attr('action')}</a> to see if it is awake. This may take up to two minutes...`);
-                    $("#report-failed").hide();
-                    $("#report-successed").hide();
-                    $("#report-info").show();
-
-                    // Ping the EMPD-admin to see if it is awake
-                    $.get(form.attr('action')).then(
-                        // Ping succeeded
-                        function(result, status) {
-                            $("#report-info").html("Please be patient, we are just dealing with your report. This may take one or two minutes and you should receive an email to " + formData.submitter_mail);
-
-                            // Send the POST request
-                            $.post(form.attr('action') + "/empd-issues/hook", JSON.stringify(formData)).then(
-                                // Post succeeded
-                                function(result, status) {
-                                    $("#report-successed").html(status + ": " + result);
-                                    data.forEach(function (d) {d.Edited = false;});
-                                    $("#report-info").hide();
-                                    $("#report-failed").hide();
-                                    $("#report-successed").show();
-                                },
-                                // Post failed
-                                function(jqxhr, status, errorThrown) {
-                                    $("#report-failed").html("Could not deliver the report<br>" + status + ": " + jqxhr.responseText);
-                                    $("#report-info").hide();
-                                    $("#report-successed").hide();
-                                    $("#report-failed").show();
-                            });
-                        },
-                        // Ping failed
-                        function(jqxhr, status, errorThrown) {
-                            $("#report-failed").html("Could not reach the EMPD-admin<br>" + status + ": " + errorThrown);
-                            $("#report-info").hide();
-                            $("#report-successed").hide();
-                            $("#report-failed").show();
-                        });
-                });
         });
-        return false;
+
+        $("#submit-info").hide();
+        $("#submit-failed").hide();
+        $("#submit-successed").hide();
+
+        $("#report-form").submit(function(e){
+            var form = $(this);
+            var rawForm = form.serializeArray();
+            var formData = {};
+            for (var i = 0; i < rawForm.length; i++){
+                formData[rawForm[i]['name']] = rawForm[i]['value'];
+            }
+
+            formData["repo"] = data_repo;
+            formData["branch"] = user_branch;
+
+            if (typeof(grecaptcha) === "undefined") {
+                $("#report-failed").html(
+                    "Please enable the javascript for Google Recaptcha to submit issues!");
+                $("#report-failed").show();
+                $("#report-successed").hide();
+                $("#report-info").hide();
+                return false;
+            }
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LflGpsUAAAAAKhm3e-A5q30qh1099ZZeF884Vld',{action: 'report_issue'}).then(
+                    function(token) {
+                        formData["token"] = token;
+                        $("#report-info").html(`Please be patient, I am pinging to EMPD-admin at <a href='${form.attr('action')}'>${form.attr('action')}</a> to see if it is awake. This may take up to two minutes...`);
+                        $("#report-failed").hide();
+                        $("#report-successed").hide();
+                        $("#report-info").show();
+
+                        // Ping the EMPD-admin to see if it is awake
+                        $.get(form.attr('action')).then(
+                            // Ping succeeded
+                            function(result, status) {
+                                $("#report-info").html("Please be patient, we are just dealing with your report. This may take one or two minutes and you should receive an email to " + formData.submitter_mail);
+
+                                // Send the POST request
+                                $.post(form.attr('action') + "/empd-issues/hook", JSON.stringify(formData)).then(
+                                    // Post succeeded
+                                    function(result, status) {
+                                        $("#report-successed").html(status + ": " + result);
+                                        data.forEach(function (d) {d.Edited = false;});
+                                        $("#report-info").hide();
+                                        $("#report-failed").hide();
+                                        $("#report-successed").show();
+                                    },
+                                    // Post failed
+                                    function(jqxhr, status, errorThrown) {
+                                        $("#report-failed").html("Could not deliver the report<br>" + status + ": " + jqxhr.responseText);
+                                        $("#report-info").hide();
+                                        $("#report-successed").hide();
+                                        $("#report-failed").show();
+                                });
+                            },
+                            // Ping failed
+                            function(jqxhr, status, errorThrown) {
+                                $("#report-failed").html("Could not reach the EMPD-admin<br>" + status + ": " + errorThrown);
+                                $("#report-info").hide();
+                                $("#report-successed").hide();
+                                $("#report-failed").show();
+                            });
+                    });
+            });
+            return false;
+        });
+
+        $("#report-info").hide();
+        $("#report-failed").hide();
+        $("#report-successed").hide();
+
     });
 
-    $("#report-info").hide();
-    $("#report-failed").hide();
-    $("#report-successed").hide();
-
-  });
-
-  // Switch to a tab if a specific one is mentiond
-  var activeTab = urlParams.get('tab');
-  if (activeTab) {
-      $(`#meta-tabs a[href="#${activeTab}"]`).tab('show');
-      document.getElementById(activeTab).scrollIntoView();
-  }
+    // Switch to a tab if a specific one is mentiond
+    var activeTab = urlParams.get('tab');
+    if (activeTab) {
+        $(`#meta-tabs a[href="#${activeTab}"]`).tab('show');
+        document.getElementById(activeTab).scrollIntoView();
+    }
 
 });
 
@@ -686,7 +697,7 @@ function parseMeta(d, i) {
         d.ispercent = d.ispercent.toLowerCase().startsWith('f') ? false : true;
     };
 
-  // Limit latitudes according to latitude map range (-85:85)
+    // Limit latitudes according to latitude map range (-85:85)
     if (d.Latitude < -85) d.Latitude = -85;
     if (d.Latitude > 85) d.Latitude = 85;
     for (var key in d) {
@@ -777,8 +788,8 @@ function editDisplayed() {
 // taken from https://stackoverflow.com/a/46181 on March 30th, 2019
 
 function validateEmail(email) {
-  var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(email);
+    var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
 }
 
 //====================================================================
@@ -819,11 +830,11 @@ function display_page_buttons() {
     d3.select('#size').text(totFilteredRecs);
     d3.select('#size-formatted').text(totFilteredRecs);
     if(totFilteredRecs != xf.size()){
-      d3.select('#totalsize').text("(filtered Total: " + xf.size() + " )");
-      d3.select('#totalsize-formatted').text("(filtered Total: " + xf.size() + " )");
+        d3.select('#totalsize').text("(filtered Total: " + xf.size() + " )");
+        d3.select('#totalsize-formatted').text("(filtered Total: " + xf.size() + " )");
     }else{
-      d3.select('#totalsize').text('');
-      d3.select('#totalsize-formatted').text('');
+        d3.select('#totalsize').text('');
+        d3.select('#totalsize-formatted').text('');
     }
 }
 function next_table_page() {
@@ -842,61 +853,61 @@ function prev_table_page() {
 //====================================================================
 function initCrossfilter(data) {
 
-  //-----------------------------------
-  xf = crossfilter(data);
+    //-----------------------------------
+    xf = crossfilter(data);
 
-  //-----------------------------------
-  sampleNameDim = xf.dimension(function(d) {
-      return d.SampleName.split("_").slice(0, -1).join(" ");
-  });
+    //-----------------------------------
+    sampleNameDim = xf.dimension(function(d) {
+        return d.SampleName.split("_").slice(0, -1).join(" ");
+    });
 
-  //-----------------------------------
-  countryDim = xf.dimension(function(d) {
-      return d.Country;
-  });
+    //-----------------------------------
+    countryDim = xf.dimension(function(d) {
+        return d.Country;
+    });
 
-  //-----------------------------------
-  sampleContextDim = xf.dimension(function(d) {
-      return d.SampleContext ? d.SampleContext : "unspecified";
-  });
+    //-----------------------------------
+    sampleContextDim = xf.dimension(function(d) {
+        return d.SampleContext ? d.SampleContext : "unspecified";
+    });
 
-  //-----------------------------------
-  sampleTypeDim = xf.dimension(function(d) {
-      return d.SampleType ? d.SampleType : "unspecified";
-  });
+    //-----------------------------------
+    sampleTypeDim = xf.dimension(function(d) {
+        return d.SampleType ? d.SampleType : "unspecified";
+    });
 
-  //-----------------------------------
-  sampleMethodDim = xf.dimension(function(d) {
-      return d.SampleMethod ? d.SampleMethod : "unspecified";
-  });
+    //-----------------------------------
+    sampleMethodDim = xf.dimension(function(d) {
+        return d.SampleMethod ? d.SampleMethod : "unspecified";
+    });
 
-  //-----------------------------------
-  okexceptDim = xf.dimension(function(d) {
-      return d.okexcept ? d.okexcept.split(',').filter(s => s) : ["None"];
-  }, true);
+    //-----------------------------------
+    okexceptDim = xf.dimension(function(d) {
+        return d.okexcept ? d.okexcept.split(',').filter(s => s) : ["None"];
+    }, true);
 
-  //-----------------------------------
-  ageDim = xf.dimension(function(d) {
-      return d.AgeUncertainty ? d.AgeUncertainty : "unspecified";
-  });
+    //-----------------------------------
+    ageDim = xf.dimension(function(d) {
+        return d.AgeUncertainty ? d.AgeUncertainty : "unspecified";
+    });
 
-  //-----------------------------------
-  locationDim = xf.dimension(function(d) {
-      return d.LocationReliability ? d.LocationReliability : "unspecified";
-  });
+    //-----------------------------------
+    locationDim = xf.dimension(function(d) {
+        return d.LocationReliability ? d.LocationReliability : "unspecified";
+    });
 
-  //-----------------------------------
-  workerDim = xf.dimension(function(d) {
-      ret = [d.Worker1_LastName + ', ' + d.Worker1_FirstName];
-      if (d.Worker2_LastName != "" && typeof d.Worker2_LastName !== 'undefined') ret.push(d.Worker2_LastName + ', ' + d.Worker2_FirstName);
-      if (d.Worker3_LastName != "" && typeof d.Worker3_LastName !== 'undefined') ret.push(d.Worker3_LastName + ', ' + d.Worker3_FirstName);
-      if (d.Worker4_LastName != "" && typeof d.Worker4_LastName !== 'undefined') ret.push(d.Worker4_LastName + ', ' + d.Worker4_FirstName);
-      return ret
-  }, true);
+    //-----------------------------------
+    workerDim = xf.dimension(function(d) {
+        ret = [d.Worker1_LastName + ', ' + d.Worker1_FirstName];
+        if (d.Worker2_LastName != "" && typeof d.Worker2_LastName !== 'undefined') ret.push(d.Worker2_LastName + ', ' + d.Worker2_FirstName);
+        if (d.Worker3_LastName != "" && typeof d.Worker3_LastName !== 'undefined') ret.push(d.Worker3_LastName + ', ' + d.Worker3_FirstName);
+        if (d.Worker4_LastName != "" && typeof d.Worker4_LastName !== 'undefined') ret.push(d.Worker4_LastName + ', ' + d.Worker4_FirstName);
+        return ret
+    }, true);
 
-  //-----------------------------------
-  for (var i = 12; i < monthsSeasons.length; i++) {
-      var temperatureDim = xf.dimension( function(d) {
+    //-----------------------------------
+    for (var i = 12; i < monthsSeasons.length; i++) {
+        var temperatureDim = xf.dimension( function(d) {
         	// Threshold
         	var temperatureThresholded = d.Temperature[i];
             if (isNaN(temperatureThresholded)) {
@@ -906,13 +917,13 @@ function initCrossfilter(data) {
         	if (temperatureThresholded >= temperatureRange[1]) temperatureThresholded = temperatureRange[1] - temperatureBinWidth;
         	return temperatureBinWidth*Math.floor(temperatureThresholded/temperatureBinWidth);
         });
-      temperatureDims.push(temperatureDim);
-      temperatureGroups.push(temperatureDim.group());
-  };
+        temperatureDims.push(temperatureDim);
+        temperatureGroups.push(temperatureDim.group());
+    };
 
-  //-----------------------------------
-  for (i = 12; i < monthsSeasons.length; i++) {
-      var precipDim = xf.dimension( function(d) {
+    //-----------------------------------
+    for (i = 12; i < monthsSeasons.length; i++) {
+        var precipDim = xf.dimension( function(d) {
           // Threshold
           var precipThresholded = d.Precipitation[i];
           if (isNaN(precipThresholded)) {
@@ -926,75 +937,77 @@ function initCrossfilter(data) {
           if (precipThresholded >= precipRange[1]) precipThresholded = precipRange[1] - precipBinWidth;
           return precipBinWidth*Math.floor(precipThresholded/precipBinWidth);
         });
-      precipDims.push(precipDim);
-      precipGroups.push(precipDim.group());
-  };
+        precipDims.push(precipDim);
+        precipGroups.push(precipDim.group());
+    };
 
-  //-----------------------------------
-  mapDim = xf.dimension(function(d) { return [d.Latitude, d.Longitude, d.Id]; });
-  mapGroup = mapDim.group();
+    //-----------------------------------
+    mapDim = xf.dimension(function(d) { return [d.Latitude, d.Longitude, d.Id]; });
+    mapGroup = mapDim.group();
 
-  //-----------------------------------
-  versionDim = xf.dimension( function(d) {
-      return d.EMPD_version ? d.EMPD_version : "None";
-  });
-  versionGroup = versionDim.group();
+    //-----------------------------------
+    versionDim = xf.dimension( function(d) {
+        return d.EMPD_version ? d.EMPD_version : "None";
+    });
+    versionGroup = versionDim.group();
 
-  //-----------------------------------
-  tableDim = xf.dimension(function(d) { return +d.Id; });
+    //-----------------------------------
+    tableDim = xf.dimension(function(d) { return +d.Id; });
 
-  //-----------------------------------
+    //-----------------------------------
 
-  customMarker = L.Marker.extend({
+    customMarker = L.Marker.extend({
     options: {
-      Id: 'Custom data!'
+        Id: 'Custom data!'
     },
     setOpacity: function(opacity) {}  // disables changes in opacity
-  });
+    });
 
-  iconSize = [32,32];
-  iconAnchor = [16,32];
-  popupAnchor = [0,-32];
+    iconSize = [32,32];
+    iconAnchor = [16,32];
+    popupAnchor = [0,-32];
 
-  mapChart = dc_leaflet.markerChart("#chart-map");
+    mapChart = dc_leaflet.markerChart("#chart-map");
 
-  mapChart
-      .width($("#chart-map").width())
-      .height(400)
-      .dimension(mapDim)
-      .group(mapGroup)
-      .center(mapCenter)
-      .zoom(mapZoom)
-      .tiles(function(map) {			// overwrite default baselayer
+    mapChart
+        .width($("#chart-map").width())
+        .height(400)
+        .dimension(mapDim)
+        .group(mapGroup)
+        .center(mapCenter)
+        .zoom(mapZoom)
+        .tiles(function(map) {			// overwrite default baselayer
 	   return L.tileLayer(
                 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
                 { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community' }).addTo(map);
-      })
-      .mapOptions({maxZoom: mapMaxZoom, zoomControl: true})
-      // .fitOnRender(false)
-      .filterByArea(true)
-      .cluster(true)
-      .clusterOptions({maxClusterRadius: 50, showCoverageOnHover: false, spiderfyOnMaxZoom: true})
-      .title(function() {})
-      .popup(function(d,marker) {
-		Id = d.key[2] -1;
-  		popup = L.popup({autoPan: false, closeButton: false, maxWidth: 300});
-		popup.setContent(getPopupContent(data[Id]));
-        mapMarkers[Id] = marker;
+        })
+        .mapOptions({maxZoom: mapMaxZoom, zoomControl: true})
+        // .fitOnRender(false)
+        .filterByArea(true)
+        .cluster(true)
+        .clusterOptions({maxClusterRadius: 50, showCoverageOnHover: false, spiderfyOnMaxZoom: true})
+        .title(function() {})
+        .popup(function(d,marker) {
+            Id = d.key[2] -1;
+          		popup = L.popup({autoPan: false, closeButton: false, maxWidth: 300});
+            popup.setContent(getPopupContent(data[Id]));
+                mapMarkers[Id] = marker;
 
-		return popup;
-      })
-      .marker(function(d,map) {
-    	Id = d.key[2] -1;
-		icon = L.icon({ iconSize: iconSize, iconAnchor: iconAnchor, popupAnchor: popupAnchor, iconUrl: imgMarker });
+            return popup;
+        })
+        .marker(function(d,map) {
+    	    var Id = d.key[2] -1;
+            var icon = L.icon({
+                iconSize: iconSize, iconAnchor: iconAnchor,
+                popupAnchor: popupAnchor, iconUrl: imgMarker });
 
-        marker = new customMarker([data[Id].Latitude, data[Id].Longitude], {Id: (Id+1).toString(), icon: icon});
-        marker.on('mouseover', function(e) {
-			iconUrlNew = imgMarkerHighlight;
-			iconNew = L.icon({ iconSize: iconSize, iconAnchor: iconAnchor, popupAnchor: popupAnchor, iconUrl: iconUrlNew });
-			e.target.setIcon(iconNew);
-			d3.selectAll(".dc-table-column._1")
-				.text(function (d, i) {
+            marker = new customMarker([data[Id].Latitude, data[Id].Longitude], {Id: (Id+1).toString(), icon: icon});
+            marker.on('mouseover', function(e) {
+    			iconUrlNew = imgMarkerHighlight;
+    			iconNew = L.icon({ iconSize: iconSize, iconAnchor: iconAnchor, popupAnchor: popupAnchor, iconUrl: iconUrlNew });
+    			e.target.setIcon(iconNew);
+    			d3.selectAll(".dc-table-column._1")
+    				.text(function (d, i) {
 			     		if (parseInt(d.Id) == e.target.options.Id) {
                             if ($('#meta-table').hasClass("active")) {
                                 $('#meta-tabs a[href="#meta-table"]').tab('show');
@@ -1005,20 +1018,20 @@ function initCrossfilter(data) {
 		               	}
 			     		return d.Id;
 		        	});
-		});
-        marker.on('mouseout', function(e) {
-			iconUrlNew = imgMarker;
-			iconNew = L.icon({ iconSize: iconSize, iconAnchor: iconAnchor, popupAnchor: popupAnchor, iconUrl: iconUrlNew });
-			e.target.setIcon(iconNew);
-			highlightDisplayed();
-		});
+		    });
+            marker.on('mouseout', function(e) {
+    			iconUrlNew = imgMarker;
+    			iconNew = L.icon({ iconSize: iconSize, iconAnchor: iconAnchor, popupAnchor: popupAnchor, iconUrl: iconUrlNew });
+    			e.target.setIcon(iconNew);
+    			highlightDisplayed();
+		    });
         	return marker;
-      });
+        });
 
-  //-----------------------------------
-  dataCount = dc.dataCount('#chart-count');
+    //-----------------------------------
+    dataCount = dc.dataCount('#chart-count');
 
-  dataCount
+    dataCount
         .dimension(xf)
         .group(xf.groupAll())
         .html({
@@ -1027,20 +1040,20 @@ function initCrossfilter(data) {
             all: `All <strong>%total-count</strong> records selected. Please click on the map or <a href="javascript:showFilters()">here</a> to apply filters.`
         });
 
-  //-----------------------------------
-  dataTable = dc.dataTable("#chart-table");
+    //-----------------------------------
+    dataTable = dc.dataTable("#chart-table");
 
-  var  all_columns = Object.keys(data[0]);
-  var exclude = ["Selected", "Id", "Edited"];
+    var  all_columns = Object.keys(data[0]);
+    var exclude = ["Selected", "Id", "Edited"];
 
-  var columns = all_columns.filter(s => exclude.indexOf(s) === -1);
+    var columns = all_columns.filter(s => exclude.indexOf(s) === -1);
 
-  var colFuncs = [
-      d => d.Selected ? "<input type='checkbox' checked>" : "<input type='checkbox'>",
-      d => d.Id,
-  ];
+    var colFuncs = [
+        d => d.Selected ? "<input type='checkbox' checked>" : "<input type='checkbox'>",
+        d => d.Id,
+    ];
 
-  columns.forEach(function(column) {
+    columns.forEach(function(column) {
           document.getElementById("meta-table-head").innerHTML += (
               '<th class="th_MetaColumn">' + column + '</th>'
           )
@@ -1051,9 +1064,9 @@ function initCrossfilter(data) {
           } else {
               colFuncs.push(function(d) {return d[column];});
           };
-  });
+    });
 
-  dataTable
+    dataTable
     .dimension(tableDim)
     .group(function(d) {})
     .showGroups(false)
@@ -1065,10 +1078,10 @@ function initCrossfilter(data) {
     .on('preRedraw', update_offset)
     .on('pretransition', display_page_buttons);
 
-  //-----------------------------------
-  formattedDataTable = dc.dataTable("#formatted-chart-table");
+    //-----------------------------------
+    formattedDataTable = dc.dataTable("#formatted-chart-table");
 
-  formattedDataTable
+    formattedDataTable
     .dimension(tableDim)
     .group(function(d) {})
     .showGroups(false)
@@ -1117,21 +1130,21 @@ function initCrossfilter(data) {
 
     //-----------------------------------
     var versionColors = d3.scaleOrdinal()
-      .domain(["EMPD1", "EMPD2", "None"])
-      .range(["#e34a33", Ocean_color, Unkown_color]);   // http://colorbrewer2.org/
+        .domain(["EMPD1", "EMPD2", "None"])
+        .range(["#e34a33", Ocean_color, Unkown_color]);   // http://colorbrewer2.org/
 
     versionChart  = dc.rowChart("#version-chart");
 
     versionChart
-      .width(180)
-      .height(100)
-      .margins({top: 10, right: 10, bottom: 30, left: 10})
-      .dimension(versionDim)
-      .group(versionGroup)
-      .colors(versionColors)
-      .elasticX(true)
-      .gap(2)
-      .xAxis().ticks(4);
+        .width(180)
+        .height(100)
+        .margins({top: 10, right: 10, bottom: 30, left: 10})
+        .dimension(versionDim)
+        .group(versionGroup)
+        .colors(versionColors)
+        .elasticX(true)
+        .gap(2)
+        .xAxis().ticks(4);
 
     //-----------------------------------
 
@@ -1268,8 +1281,8 @@ function initCrossfilter(data) {
         locationChart, contributorMenu, workerMenu, temperatureChart,
         precipChart, okexceptMenu];
 
-  //-----------------------------------
-  dc.renderAll();
+    //-----------------------------------
+    dc.renderAll();
 }
 
 // ====================================
@@ -1317,18 +1330,18 @@ function showFilters() {
 
 // reset dataTable
 function resetTable() {
-  dataTable.filterAll();
-  dc.redrawAll();
-  // make reset link invisible
-  d3.select("#resetFormattedTableLink").style("display", "none");
-  d3.select("#resetTableLink").style("display", "none");
+    dataTable.filterAll();
+    dc.redrawAll();
+    // make reset link invisible
+    d3.select("#resetFormattedTableLink").style("display", "none");
+    d3.select("#resetTableLink").style("display", "none");
 }
 
 // reset all except mapChart
 function resetAll_exceptMap() {
-  allCharts.slice(1).forEach(function(chart) {chart.filterAll();});
-  resetTable();
-  dc.redrawAll();
+    allCharts.slice(1).forEach(function(chart) {chart.filterAll();});
+    resetTable();
+    dc.redrawAll();
 }
 
 //====================================================================
