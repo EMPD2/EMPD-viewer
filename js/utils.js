@@ -9,6 +9,13 @@ var lockableElements = [];
 //====================================================================
 
 function downloadJSON(data, fileName="data.tsv", exclude=["Selected", "Id", "Edited"]) {
+	/**
+	* Download a javascript object as tab-separated file
+	*
+	* @param {Object} data - The javascript object to download
+	* @param {string} fileName - The name for the resulting file
+	* @param {Array.<string>} exclude - Properties that shall be excluded
+	*/
     var  columns = [...new Set(data.reduce((r, e) => [...r, ...Object.keys(e)], []))];
     var tsv = d3.tsvFormat(data, columns.filter(s => exclude.indexOf(s) === -1));
     var downloadLink = document.createElement("a");
@@ -24,16 +31,26 @@ function downloadJSON(data, fileName="data.tsv", exclude=["Selected", "Id", "Edi
 
 //====================================================================
 function DOILink(doi) {
-    return doi ? '<a href="https://dx.doi.org/' + doi + '" target="_blank">' + doi + '</a>' : '';
+	// Create a link to https://doi.org for the given DOI
+    return doi ? '<a href="https://doi.org/' + doi + '" target="_blank">' + doi + '</a>' : '';
 }
 
 function mailLink(samplename, mail, text) {
+	// Create an email link for a given sample for the given mail
     return mail ? '<a href=mailto:' + mail + "?Subject=EMPD%20sample%20" + samplename + '>' + text + '</a>' : '';
 }
 
 //====================================================================
 
 function formatNumberLength(num, length) {
+	/**
+	* Format an integer with leading zeros.
+	*
+	* @param {integer} num - The number to format
+	* @param {integer} length - The desired length
+	*
+	*@return {string} The formatted num
+	*/
     // Copied from https://stackoverflow.com/a/1127966
     var r = "" + num;
     while (r.length < length) {
@@ -44,6 +61,13 @@ function formatNumberLength(num, length) {
 
 
 function wrap(text) {
+	/**
+	* Wrap a text and split it into multiple lines
+	*
+	* @param {string} text - The text to split
+	*
+	*@return {string} The splitted text
+	*/
     // Copied from https://bl.ocks.org/ericsoco/647db6ebadd4f4756cae
     // on October 4th, 2018
 
@@ -93,6 +117,7 @@ function wrap(text) {
 //====================================================================
 
 function highlightDisplayed() {
+	// Highlight the selected samples in the data table
     d3.selectAll(".dc-table-row")
         .style("font-weight", "normal")
         .style("background", "#eee");
@@ -112,7 +137,26 @@ function highlightDisplayed() {
     }
 }
 
+//====================================================================
+
 function lockableElement(parent, entity, siteName) {
+	/**
+    * Create a container with a div that can be locked and removed
+	*
+	* This function adds two nodes to the given `parent`. The first one is a
+	* title widget that is supposed to hold the title made up by
+	* `siteName` and `entity`, and the second one can be used for anything
+	* else
+	*
+	* @see removeUnlocked
+	* @see lockElement
+	*
+	* @param {string} parent - The parent node ID
+	* @param {string} entity - The entity (SampleName) that shall be used
+	* @param {string} siteName - The name of the site
+	*
+	* @return {string} The node ID for the second created element
+	*/
     var parentElem = document.getElementById(parent);
     var elemId = `${parent}-${entity}`
     if (lockableElements.includes(elemId)) {
@@ -136,6 +180,16 @@ function lockableElement(parent, entity, siteName) {
 }
 
 function lockElement(elemId) {
+	/**
+    * Lock or unlock an element created with lockableElement
+	*
+	* Elements that are locked are not removed by the `removeUnlocked` function
+	*
+	* @see lockableElement
+	* @see removeUnlocked
+	*
+	* @param {string} elemId - The parent node ID used in lockableElement
+	*/
     if (!lockedElements.includes(elemId)) {
         lockedElements.push(elemId);
     } else {
@@ -145,6 +199,15 @@ function lockElement(elemId) {
 }
 
 function removeUnlocked() {
+	/**
+    * Remove unlocked elements created with lockableElement
+	*
+	* Elements that are locked with the `lockElement` function are not removed
+	* by this function
+	*
+	* @see lockableElement
+	* @see lockElement
+	*/
     lockableElements.filter(
         elemId => !lockedElements.includes(elemId)).forEach(
             function(elemId) {
@@ -157,5 +220,6 @@ function removeUnlocked() {
 // ==================================================================
 
 function jsonCopy(src) {
-  return JSON.parse(JSON.stringify(src));
+	// Make a copy of a javascript object
+    return JSON.parse(JSON.stringify(src));
 }

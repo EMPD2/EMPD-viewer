@@ -30,6 +30,35 @@ var groupNames = {
 //====================================================================
 
 function plotPollen(data, elemId, groupByName="acc_varname") {
+	/**
+	* Plot the pollen percentages of one single sample as a bar diagram.
+    *
+	* This function takes pollen data, one taxon per element in `data`, and
+	* displays it as individual vertical bars. Each element in data must look
+	* like
+	*
+	* ```javascript
+	* {
+	*     percentage: The percentage of the taxon,
+	*     count: The pollen count,
+	*     higher_groupid: The group id as defined in the `groupNames` variable,
+	*     acc_varname: The accepted variable name,
+	*     original_varname: The original variable name as used by the other,
+	*     consol_name: The consolidated name (optional),
+	* }
+	* ```
+    *
+	* The x-labels of the bars (i.e. the taxa names) are determined by the
+	* `groupByName` variable. It must point to one of the properties in the
+	* `data` (acc_varname, original_varname, or consol_name) that shall be used
+	* for the x-axis. Potential duplicates are summed up.
+	*
+	* @see plotPollenLegend
+    *
+	* @param {Array.<Object>} data - The array of taxon percentages
+	* @param  {string} elemId - The id where to plot the diagram
+	* @param {string} groupByName - The property to use for the x-axis
+	*/
 
     // make the plots
     var plotGroups = ["TRSH", "PALM", "MANG", "LIAN", "SUCC", "HERB", "VACR", "AQUA"];
@@ -218,6 +247,13 @@ function plotPollen(data, elemId, groupByName="acc_varname") {
 //====================================================================
 
 function plotPollenLegend(elemId) {
+	/**
+	* Plot the legend for the pollen diagram
+    *
+	* @see plotPollen
+	*
+	* @param  {string} elemId - The id where to plot the diagram
+	*/
     var svg = d3.select("#" + elemId).select("svg");
 
     legendPadding = 10;
@@ -255,7 +291,19 @@ function plotPollenLegend(elemId) {
 // ==================================================================
 
 function plotClimate(data, elemId) {
-    //graph code
+	/**
+	* Plot the monthly and seasonal climate for a sample
+    *
+	* This function plots the monthly, seasonal and annual tmperature and
+	* precipitation of the samples. The given `data` must hold a
+	* `Precipitation` and `Temperature` property that is used for the
+	* plotting.
+	*
+	* @see plotClimateLegend
+    *
+	* @param {Object} data - The meta data with a Precipitation and Temperature property
+	* @param  {string} elemId - The id where to plot the diagram
+	*/
 
     var precip = data.Precipitation.slice(),
         temperature = data.Temperature;
@@ -394,6 +442,13 @@ function plotClimate(data, elemId) {
 //====================================================================
 
 function plotClimateLegend(elemId) {
+	/**
+	* Plot the climate legend
+	*
+	* @see plotClimate
+    *
+	* @param  {string} elemId - The id where to plot the legend
+	*/
     var svg = d3.select("#" + elemId).select("svg");
 
     legendPadding = 10;
