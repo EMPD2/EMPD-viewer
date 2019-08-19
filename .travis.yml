@@ -20,3 +20,17 @@ before_script:
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3
   - fluxbox >/dev/null 2>&1 &
+
+before_deploy: rm .gitignore .travis.yml
+
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token:
+    secure: "bXkHudEg9VNnpP9NghW0DoHfoT76OvPZugwLiWVmSTxjn6lqOmjWDMKAE0kCUlotj7mFqON/QNk8jNiuX3h7zeXnl3fudcZvgQ4KKJ2AvId2QSGqENo1Uy12rmwG4vCXfbALCCRemKJzXadcXYXF7XxmFOaazjCkbUBTv6/s5KSmp1Sc94FarUcY8v219npHgMylbnxtHHZ6AjIVbvtObn/uuhB7wiEX1SIk5WKSUCVaXGap0J5r1FZl1DWaM5PEu6a7t3pXJ4Dqi5EpgIL7vBdLSFj+vzfTokc4C/d70Xqnb+AexqKVYgIDEDsDlXt3RRxhfW4pjoztczfJ0/joZ2EPtZKy9g4Mdm6oru+6z211cxYP5vfBzNUvVEyLcDNy7xn/Y8akyykZ/CTGT2bFCfbYkkx1Oap1pqE8QhZJZBb1JqSYxdKq84y+Tsuv1zaFUIHEj/usbvodZMpKFQz9z9jiS2PJu597WdZI6z8F2ARny3/Qq4qIhRgFEFiwkE6aFaNAUFnIrl3VCKnG3rMsoocn2vBkh1dWOIXuQIXxsY6VQVQDMaJMVh4Bb2SWQh/UdMP2JXzl+Q071yDu2YYj/NVFUXvXkTQjchvyP0zdMnXG8bWHLwnVpy5Qj5W4Us4o1Q8llVGHc6+h73kHD6C9n3UBwwP/tInTfFgmVompYO0="
+  keep-history: true
+  repo: EMPD2/EMPD2.github.io
+  target-branch: master
+  local-dir: .
+  on:
+    branch: master
