@@ -296,46 +296,8 @@ $(document).ready(function() {
         // plot the pollen and climate data on popupopen
         theMap.on('popupopen', function(event) {
             Id = event.popup._source.key[2] - 1;
-            displayedId = data[Id].Id;
-            displayedData = data[Id];
-            highlightDisplayed();
-
-            var activeTab = $('#climate-plot').hasClass("active") ? "climate-plot" : "pollen-plot";
-            removeUnlocked();
-
-            // plot the climate data
-            var elemId = lockableElement("climate-diagram", data[Id].SampleName, data[Id].SiteName);
-            $('#meta-tabs a[href="#climate-plot"]').tab('show');
-            plotClimate(data[Id], elemId);
-            plotClimateLegend("climate-diagram-legend");
-
-            // load and plot the pollen data
-            d3.tsv(
-                repo_url + 'samples/' + data[Id].SampleName + '.tsv',
-                function(d) {
-                    d.higher_groupid = groupInfo[d.groupid].higher_groupid;
-                    d.samplename = data[Id].SampleName;
-                    d.percentage = d.percentage == '' ? NaN : +d.percentage;
-                    d.count = d.count == '' ? NaN : +d.count;
-                    return d
-                }).then(function(taxa_data) {
-
-                    taxa_data = taxa_data.filter(d => !isNaN(d.percentage))
-
-                    document.getElementById("pollen-diagram-legend").innerHTML = "<svg/>";
-                    document.getElementById("climate-diagram-legend").innerHTML = "<svg/>";
-
-                    var elemId = lockableElement("pollen-diagram", data[Id].SampleName, data[Id].SiteName);
-                    $('#meta-tabs a[href="#pollen-plot"]').tab('show');
-                    plotPollen(taxa_data, elemId);
-                    plotPollenLegend('pollen-diagram-legend');
-
-                    $('#meta-tabs a[href="#' + activeTab + '"]').tab('show');
-
-                    plottedPollenData[data[Id].SampleName] = taxa_data;
-                });
-
-        });
+            displaySampleData(data[Id]);
+        })
 
         theMap.on('popupclose', function(event) {
             Id = event.popup._source.key[2] - 1;
@@ -710,12 +672,16 @@ function parseMeta(d, i) {
     d.Latitude = +d.Latitude;
     d.Selected = false;
     d.Edited = false;
-    if (typeof(d.Temperature.replace) !== 'undefined') {
-        d.Temperature = $.map(d.Temperature.replace('[', '').replace(']', '').split(","), v => parseFloat(v));
-    };
-    if (typeof(d.Precipitation.replace) !== 'undefined') {
-        d.Precipitation = $.map(d.Precipitation.replace('[', '').replace(']', '').split(","), v => parseFloat(v));
-    };
+    if (typeof(d.Temperature) !== 'undefined') {
+        if (typeof(d.Temperature.replace) !== 'undefined') {
+            d.Temperature = $.map(d.Temperature.replace('[', '').replace(']', '').split(","), v => parseFloat(v));
+        };
+    }
+    if (typeof(d.Precipitation) !== 'undefined') {
+        if (typeof(d.Precipitation.replace) !== 'undefined') {
+            d.Precipitation = $.map(d.Precipitation.replace('[', '').replace(']', '').split(","), v => parseFloat(v));
+        };
+    }
 
     if (typeof(d.ispercent) !== typeof(true)) {
         d.ispercent = d.ispercent.toLowerCase().startsWith('f') ? false : true;
@@ -729,6 +695,51 @@ function parseMeta(d, i) {
     }
     return d;
 }
+
+// ==================================================================
+
+function displaySampleData(data) {
+    displayedId = data.Id;
+    displayedData = data;
+    highlightDisplayed();
+
+    var activeTab = $('#climate-plot').hasClass("active") ? "climate-plot" : "pollen-plot";
+    removeUnlocked();
+    document.getElementById("climate-diagram-legend").innerHTML = "<svg/>";
+    document.getElementById("pollen-diagram-legend").innerHTML = "<svg/>";
+
+    // plot the climate data
+    if (typeof(data.Precipitation) !== 'undefined') {
+        var elemId = lockableElement("climate-diagram", data.SampleName, data.SiteName);
+        $('#meta-tabs a[href="#climate-plot"]').tab('show');
+        plotClimate(data, elemId);
+        plotClimateLegend("climate-diagram-legend");
+    }
+
+    // load and plot the pollen data
+    d3.tsv(
+        repo_url + 'samples/' + data.SampleName + '.tsv',
+        function(d) {
+            d.higher_groupid = groupInfo[d.groupid].higher_groupid;
+            d.samplename = data.SampleName;
+            d.percentage = d.percentage == '' ? NaN : +d.percentage;
+            d.count = d.count == '' ? NaN : +d.count;
+            return d
+        }).then(function(taxa_data) {
+
+            taxa_data = taxa_data.filter(d => !isNaN(d.percentage))
+
+            var elemId = lockableElement("pollen-diagram", data.SampleName, data.SiteName);
+            $('#meta-tabs a[href="#pollen-plot"]').tab('show');
+            plotPollen(taxa_data, elemId);
+            plotPollenLegend('pollen-diagram-legend');
+
+            $('#meta-tabs a[href="#' + activeTab + '"]').tab('show');
+
+            plottedPollenData[data.SampleName] = taxa_data;
+        });
+
+};
 
 // ==================================================================
 
