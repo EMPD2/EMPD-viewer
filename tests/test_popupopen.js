@@ -23,7 +23,7 @@ const plotTestData = ClientFunction(() => displaySampleData({
     "Edited": false
 }));
 
-const getPlottedPollenData = ClientFunction(() => plottedPollenData);
+const getPlottedPollenData = ClientFunction(() => plottedPollenData.test_a1);
 
 const getPollenDiagram = ClientFunction(() => document.getElementById("pollen-diagram-test_a1").innerHTML);
 
